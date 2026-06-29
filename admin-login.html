@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login — ANOTHER MOMENT</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="admin.css">
+</head>
+
+<body class="login-body">
+
+    <div class="login-bg">
+        <div class="login-orb orb-1"></div>
+        <div class="login-orb orb-2"></div>
+        <div class="login-orb orb-3"></div>
+    </div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="login-logo-mark">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h1 class="login-brand-name">ANOTHER MOMENT</h1>
+                <p class="login-brand-sub">Admin Control Panel</p>
+            </div>
+
+            <div id="loginError" class="login-error" style="display:none;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="loginErrorMsg">Invalid credentials. Please try again.</span>
+            </div>
+
+            <form id="adminLoginForm" class="login-form" autocomplete="off">
+                <div class="form-field">
+                    <label for="adminUsername">Username</label>
+                    <div class="field-input-wrap">
+                        <i class="fa-regular fa-user field-icon"></i>
+                        <input type="text" id="adminUsername" name="adminUsername" placeholder="Enter admin username" required autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="adminPassword">Password</label>
+                    <div class="field-input-wrap">
+                        <i class="fa-solid fa-lock field-icon"></i>
+                        <input type="password" id="adminPassword" name="adminPassword" placeholder="Enter admin password" required autocomplete="off">
+                        <button type="button" class="toggle-pw" id="togglePw" title="Toggle password visibility">
+                            <i class="fa-regular fa-eye" id="togglePwIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <span id="loginBtnText">Sign In to Admin</span>
+                    <span id="loginBtnLoader" style="display:none;"><i class="fa-solid fa-spinner fa-spin"></i>&nbsp;Authenticating...</span>
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <a href="../index.html" class="back-to-site">
+                    <i class="fa-solid fa-arrow-left"></i> Back to main site
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = 'https://anotherm-api.onrender.com';
+
+        // Toggle password visibility
+        document.getElementById('togglePw').addEventListener('click', () => {
+            const pw = document.getElementById('adminPassword');
+            const icon = document.getElementById('togglePwIcon');
+            if (pw.type === 'password') {
+                pw.type = 'text';
+                icon.className = 'fa-regular fa-eye-slash';
+            } else {
+                pw.type = 'password';
+                icon.className = 'fa-regular fa-eye';
+            }
+        });
+
+        // Form submit — verifies credentials against the Firestore admins collection via API
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username  = document.getElementById('adminUsername').value.trim();
+            const password  = document.getElementById('adminPassword').value;
+            const btnText   = document.getElementById('loginBtnText');
+            const btnLoader = document.getElementById('loginBtnLoader');
+            const errorBox  = document.getElementById('loginError');
+            const errorMsg  = document.getElementById('loginErrorMsg');
+
+            btnText.style.display   = 'none';
+            btnLoader.style.display = 'inline-flex';
+            errorBox.style.display  = 'none';
+
+            try {
+                const res = await fetch(`${API}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    sessionStorage.setItem('am_admin_auth', 'true');
+                    sessionStorage.setItem('am_admin_user', data.displayName || data.username);
+                    window.location.href = 'admin-dashboard.html';
+                } else {
+                    throw new Error(data.error || 'Invalid username or password.');
+                }
+            } catch (err) {
+                btnText.style.display   = 'inline';
+                btnLoader.style.display = 'none';
+                errorMsg.textContent    = err.message || 'Something went wrong. Please try again.';
+                errorBox.style.display  = 'flex';
+                document.getElementById('adminLoginForm').classList.add('shake');
+                setTimeout(() => document.getElementById('adminLoginForm').classList.remove('shake'), 500);
+            }
+        });
+    </script>
+</body>
+
+</html>
