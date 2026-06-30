@@ -76,7 +76,9 @@
     </div>
 
     <script>
-        const API = 'https://anotherm-api.onrender.com';
+        const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? `${window.location.protocol}//${window.location.hostname}:3000`
+            : 'https://anotherm-api.onrender.com';
 
         // Toggle password visibility
         document.getElementById('togglePw').addEventListener('click', () => {

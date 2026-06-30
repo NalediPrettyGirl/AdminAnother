@@ -3,7 +3,9 @@
    Completely separate from main site
    ============================================= */
 
-const API = 'https://anotherm-api.onrender.com';
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? `${window.location.protocol}//${window.location.hostname}:3000`
+    : 'https://anotherm-api.onrender.com';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5-minute cache
 
 /* ── Auth Guard ──────────────────────────────── */
