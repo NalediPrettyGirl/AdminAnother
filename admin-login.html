@@ -102,6 +102,23 @@
             const errorBox  = document.getElementById('loginError');
             const errorMsg  = document.getElementById('loginErrorMsg');
 
+            // Input validation
+            if (username.length < 3) {
+                errorMsg.textContent = 'Username must be at least 3 characters long.';
+                errorBox.style.display = 'flex';
+                document.getElementById('adminLoginForm').classList.add('shake');
+                setTimeout(() => document.getElementById('adminLoginForm').classList.remove('shake'), 500);
+                return;
+            }
+
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password must be at least 6 characters long.';
+                errorBox.style.display = 'flex';
+                document.getElementById('adminLoginForm').classList.add('shake');
+                setTimeout(() => document.getElementById('adminLoginForm').classList.remove('shake'), 500);
+                return;
+            }
+
             btnText.style.display   = 'none';
             btnLoader.style.display = 'inline-flex';
             errorBox.style.display  = 'none';
@@ -118,6 +135,7 @@
                 if (res.ok && data.success) {
                     sessionStorage.setItem('am_admin_auth', 'true');
                     sessionStorage.setItem('am_admin_user', data.displayName || data.username);
+                    sessionStorage.setItem('am_admin_token', data.token);
                     window.location.href = 'index.html';
                 } else {
                     throw new Error(data.error || 'Invalid username or password.');

@@ -8,7 +8,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5-minute cache
 
 /* ── Auth Guard ──────────────────────────────── */
 (function() {
-    if (!sessionStorage.getItem('am_admin_auth')) {
+    if (!sessionStorage.getItem('am_admin_token')) {
         window.location.href = 'admin-login.html';
     }
 })();
@@ -17,7 +17,6 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5-minute cache
 const adminState = {
     products: [],
     categories: [],
-    orders: [],
     chats: [],
     users: [],
     loaded: {}
@@ -48,7 +47,7 @@ function cacheGet(key) {
 }
 
 function cacheClear() {
-    ['products','categories','orders','chats','users'].forEach(k => {
+    ['products','categories','chats','users'].forEach(k => {
         sessionStorage.removeItem('am_cache_' + k);
     });
 }
@@ -103,14 +102,10 @@ function initAdmin() {
     document.getElementById('addCategoryBtn').addEventListener('click', () => openCategoryModal());
     document.getElementById('saveCategoryBtn').addEventListener('click', saveCategory);
 
-    // Order modal
-    document.getElementById('saveOrderBtn').addEventListener('click', saveOrderStatus);
-
     // Search / filter listeners
     document.getElementById('productSearch').addEventListener('input', renderProducts);
     document.getElementById('productCategoryFilter').addEventListener('change', renderProducts);
-    document.getElementById('orderSearch').addEventListener('input', renderOrders);
-    document.getElementById('orderStatusFilter').addEventListener('change', renderOrders);
+    document.getElementById('subscriberSearch').addEventListener('input', renderSubscribers);
     document.getElementById('chatSearch').addEventListener('input', renderChats);
     document.getElementById('userSearch').addEventListener('input', renderUsers);
 
@@ -133,7 +128,7 @@ async function prefetchAll(forceRefresh = false) {
 
     prefetchPromise = (async () => {
         const startMs = Date.now();
-        const collections = ['products', 'categories', 'orders', 'chats', 'users'];
+        const collections = ['products', 'categories', 'chats', 'users'];
 
         // Check which collections are already cached
         const needsFetch = collections.filter(k => forceRefresh || !cacheGet(k));
@@ -185,12 +180,12 @@ async function prefetchAll(forceRefresh = false) {
 
 function updateBadges() {
     setText('badge-products', adminState.products.length);
-    setText('badge-orders',   adminState.orders.length);
+    setText('badge-subscribers', adminState.products.length);
     setText('stat-products',  adminState.products.length);
-    setText('stat-orders',    adminState.orders.length);
+    setText('stat-subscribers', adminState.products.length);
     setText('stat-users',     adminState.users.length);
     setText('stat-chats',     adminState.chats.length);
-    const revenue = adminState.orders.reduce((s, o) => s + parseFloat(o.totalAmount || 0), 0);
+    const revenue = adminState.products.length * 49;
     setText('stat-revenue', `R ${revenue.toFixed(2)}`);
 }
 
@@ -242,7 +237,7 @@ function switchSection(name) {
 
     const titles = {
         overview: 'Overview', products: 'Products', categories: 'Categories',
-        orders: 'Orders', chats: 'Messages', users: 'Users'
+        subscribers: 'Subscribers', chats: 'Messages', users: 'Users'
     };
     setText('topbarTitle', titles[name] || name);
 
@@ -252,7 +247,7 @@ function switchSection(name) {
         overview:    renderOverviewFromState,
         products:    renderProducts,
         categories:  renderCategories,
-        orders:      renderOrders,
+        subscribers: renderSubscribers,
         chats:       renderChats,
         users:       renderUsers
     };
@@ -283,7 +278,7 @@ function refreshCurrentSection() {
         const name = activeLink ? activeLink.dataset.section : 'overview';
         const renders = {
             overview: renderOverviewFromState, products: renderProducts,
-            categories: renderCategories, orders: renderOrders,
+            categories: renderCategories, subscribers: renderSubscribers,
             chats: renderChats, users: renderUsers
         };
         if (renders[name]) renders[name]();
@@ -295,9 +290,17 @@ function refreshCurrentSection() {
 async function apiFetch(endpoint, options = {}) {
     try {
         const url = `${API}${endpoint}`;
+        const token = sessionStorage.getItem('am_admin_token');
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
         const res = await fetch(url, {
-            headers: { 'Content-Type': 'application/json', ...options.headers },
-            ...options
+            ...options,
+            headers
         });
         if (!res.ok) {
             const text = await res.text();
@@ -317,30 +320,36 @@ async function apiFetch(endpoint, options = {}) {
 // Pure render from prefetched adminState — no API calls
 function renderOverviewFromState() {
     updateBadges();
-    renderRecentOrders();
+    renderRecentSubscribers();
     renderRecentProducts();
 }
 
-function renderRecentOrders() {
-    const recentOrders = [...adminState.orders]
+function renderRecentSubscribers() {
+    const recentSubs = [...adminState.products]
         .sort((a, b) => getTimestamp(b.createdAt) - getTimestamp(a.createdAt))
         .slice(0, 5);
 
-    const tbody = document.getElementById('recentOrdersBody');
+    const tbody = document.getElementById('recentSubscribersBody');
     if (!tbody) return;
 
-    if (recentOrders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3"><div class="empty-state"><i class="fa-solid fa-inbox"></i><p>No orders yet</p></div></td></tr>`;
+    if (recentSubs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3"><div class="empty-state"><i class="fa-solid fa-address-card"></i><p>No subscribers yet</p></div></td></tr>`;
         return;
     }
 
-    tbody.innerHTML = recentOrders.map(o => `
+    tbody.innerHTML = recentSubs.map(p => {
+        const user = adminState.users.find(u => u.id === p.sellerId) || {};
+        const userName = user.firstName ? `${user.firstName} ${user.lastName || ''}` : (user.email || 'Unknown User');
+        return `
         <tr>
-            <td><code style="font-size:0.75rem;color:var(--admin-text-muted);">${esc(o.id).substring(0,10)}…</code></td>
-            <td style="font-weight:600;color:var(--admin-accent);">R ${parseFloat(o.totalAmount || 0).toFixed(2)}</td>
-            <td>${statusBadge(o.status || 'pending')}</td>
+            <td>
+                <div style="font-weight:600;">${esc(userName)}</div>
+                <div style="font-size:0.75rem;color:var(--admin-text-muted);">${esc(user.email || '—')}</div>
+            </td>
+            <td>${esc(p.title || '—')}</td>
+            <td style="font-weight:600;color:var(--admin-accent);">R 49.00</td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 function renderRecentProducts() {
@@ -566,86 +575,48 @@ async function saveCategory() {
     }
 }
 
-/* ── Orders ──────────────────────────────────── */
-async function loadOrders() {
-    setTableLoading('ordersTableBody', 7);
-    const orders = await apiFetch('/orders');
-    adminState.orders = Array.isArray(orders) ? orders : [];
-    setText('badge-orders', adminState.orders.length);
-    setText('stat-orders',  adminState.orders.length);
-    renderOrders();
-    return Promise.resolve();
-}
+/* ── Subscribers ───────────────────────────────── */
+function renderSubscribers() {
+    const search = (document.getElementById('subscriberSearch').value || '').toLowerCase();
 
-function renderOrders() {
-    const search       = (document.getElementById('orderSearch').value || '').toLowerCase();
-    const statusFilter = document.getElementById('orderStatusFilter').value;
-
-    let list = adminState.orders.filter(o => {
+    let list = adminState.products.filter(p => {
+        const user = adminState.users.find(u => u.id === p.sellerId) || {};
+        const userName = user.firstName ? `${user.firstName} ${user.lastName || ''}` : (user.email || 'Unknown User');
+        
         const matchSearch = !search
-            || (o.id || '').toLowerCase().includes(search)
-            || (o.buyerId || '').toLowerCase().includes(search)
-            || (o.productId || '').toLowerCase().includes(search);
-        const matchStatus = !statusFilter || (o.status || 'pending') === statusFilter;
-        return matchSearch && matchStatus;
+            || userName.toLowerCase().includes(search)
+            || (user.email || '').toLowerCase().includes(search)
+            || (p.title || '').toLowerCase().includes(search);
+        return matchSearch;
     }).sort((a,b) => getTimestamp(b.createdAt) - getTimestamp(a.createdAt));
 
-    const tbody = document.getElementById('ordersTableBody');
+    const tbody = document.getElementById('subscribersTableBody');
     if (!tbody) return;
 
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-bag-shopping"></i><p>No orders found.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fa-solid fa-address-card"></i><p>No subscribers found.</p></div></td></tr>`;
         return;
     }
 
-    tbody.innerHTML = list.map(o => `
+    tbody.innerHTML = list.map(p => {
+        const user = adminState.users.find(u => u.id === p.sellerId) || {};
+        const userName = user.firstName ? `${user.firstName} ${user.lastName || ''}` : (user.email || 'Unknown User');
+        return `
         <tr>
-            <td><code style="font-size:0.78rem;color:var(--admin-text-muted);" title="${esc(o.id)}">${esc(o.id.substring(0,10))}…</code></td>
-            <td style="font-size:0.83rem;" title="${esc(o.buyerId || '')}">${esc(o.buyerId ? o.buyerId.substring(0,14)+'…' : '—')}</td>
-            <td style="font-size:0.83rem;" title="${esc(o.productId || '')}">${esc(o.productId ? o.productId.substring(0,14)+'…' : '—')}</td>
-            <td style="font-weight:700;color:var(--admin-accent);">R ${parseFloat(o.totalAmount || 0).toFixed(2)}</td>
-            <td>${statusBadge(o.status || 'pending')}</td>
-            <td style="font-size:0.82rem;color:var(--admin-text-muted);">${formatDate(o.createdAt)}</td>
             <td>
-                <div class="table-actions">
-                    <button class="table-action-btn" title="Update Status" onclick="openOrderModal('${esc(o.id)}','${esc(o.status||'pending')}')">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button class="table-action-btn danger" title="Delete" onclick="confirmDelete('order','${esc(o.id)}')">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
+                <div style="font-weight:600;">${esc(userName)}</div>
+                <div style="font-size:0.83rem;color:var(--admin-text-muted);">${esc(user.email || '—')}</div>
             </td>
+            <td>
+                <div style="font-weight:600;">${esc(p.title || '—')}</div>
+                <div style="font-size:0.75rem;color:var(--admin-accent);">${esc(p.category || '')}</div>
+            </td>
+            <td style="font-weight:700;color:var(--admin-accent);">R 49.00</td>
+            <td style="font-size:0.82rem;color:var(--admin-text-muted);">${formatDate(p.createdAt)}</td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
-function openOrderModal(id, status) {
-    document.getElementById('oEditId').value = id;
-    document.getElementById('orderModalId').textContent = id;
-    document.getElementById('oStatus').value = status;
-    openModal('orderModal');
-}
-
-async function saveOrderStatus() {
-    const id     = document.getElementById('oEditId').value;
-    const status = document.getElementById('oStatus').value;
-    const btn    = document.getElementById('saveOrderBtn');
-    setLoading(btn, true, 'Saving…');
-
-    const result = await apiFetch(`/orders/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
-
-    setLoading(btn, false, '<i class="fa-solid fa-floppy-disk"></i> Update Status');
-
-    if (result !== null) {
-        showToast('Order status updated!', 'success');
-        closeModal('orderModal');
-        adminState.loaded.orders = false;
-        await loadOrders();
-    } else {
-        showToast('Failed to update order.', 'error');
-    }
-}
 
 /* ── Chats ───────────────────────────────────── */
 async function loadChats() {

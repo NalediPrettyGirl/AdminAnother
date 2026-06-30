@@ -52,10 +52,10 @@
 
             <span class="nav-section-label">Commerce</span>
 
-            <button class="sidebar-link" data-section="orders" id="nav-orders">
-                <span class="link-icon"><i class="fa-solid fa-bag-shopping"></i></span>
-                Orders
-                <span class="link-badge" id="badge-orders">0</span>
+            <button class="sidebar-link" data-section="subscribers" id="nav-subscribers">
+                <span class="link-icon"><i class="fa-solid fa-address-card"></i></span>
+                Subscribers
+                <span class="link-badge" id="badge-subscribers">0</span>
             </button>
 
             <button class="sidebar-link" data-section="chats" id="nav-chats">
@@ -126,9 +126,9 @@
                         <div class="stat-label">Total Products</div>
                     </div>
                     <div class="stat-card green">
-                        <div class="stat-icon"><i class="fa-solid fa-bag-shopping"></i></div>
-                        <div class="stat-value" id="stat-orders">—</div>
-                        <div class="stat-label">Total Orders</div>
+                        <div class="stat-icon"><i class="fa-solid fa-address-card"></i></div>
+                        <div class="stat-value" id="stat-subscribers">—</div>
+                        <div class="stat-label">Total Subscribers</div>
                     </div>
                     <div class="stat-card blue">
                         <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
@@ -148,22 +148,22 @@
                 </div>
 
                 <div class="col-grid-2" style="gap:20px;">
-                    <!-- Recent Orders -->
+                    <!-- Recent Subscribers -->
                     <div class="admin-card">
                         <div class="admin-card-header">
-                            <span class="admin-card-title">Recent Orders</span>
-                            <button class="btn-admin btn-admin-ghost" style="padding:6px 14px;font-size:0.78rem;" onclick="switchSection('orders')">View All</button>
+                            <span class="admin-card-title">Recent Subscribers</span>
+                            <button class="btn-admin btn-admin-ghost" style="padding:6px 14px;font-size:0.78rem;" onclick="switchSection('subscribers')">View All</button>
                         </div>
                         <div class="admin-table-wrap">
                             <table class="admin-table">
                                 <thead>
                                     <tr>
-                                        <th>Order ID</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
+                                        <th>Subscriber</th>
+                                        <th>Item Listed</th>
+                                        <th>Fee Paid</th>
                                     </tr>
                                 </thead>
-                                <tbody id="recentOrdersBody">
+                                <tbody id="recentSubscribersBody">
                                     <tr><td colspan="3" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>
                                 </tbody>
                             </table>
@@ -278,47 +278,37 @@
                 </div>
             </section>
 
-            <!-- ===== ORDERS ===== -->
-            <section class="content-section" id="section-orders">
+            <!-- ===== SUBSCRIBERS ===== -->
+            <section class="content-section" id="section-subscribers">
                 <div class="page-header">
                     <div class="page-header-title">
-                        <h2>Orders</h2>
-                        <p>Track and manage customer orders.</p>
+                        <h2>Subscribers</h2>
+                        <p>Track users who have subscribed (listed items).</p>
                     </div>
                 </div>
 
                 <div class="admin-card">
                     <div class="admin-card-header">
-                        <span class="admin-card-title">All Orders</span>
+                        <span class="admin-card-title">All Subscribers</span>
                         <div class="table-toolbar">
                             <div class="search-input-wrap">
                                 <i class="fa-solid fa-magnifying-glass"></i>
-                                <input type="text" class="search-input" id="orderSearch" placeholder="Search orders…">
+                                <input type="text" class="search-input" id="subscriberSearch" placeholder="Search subscribers…">
                             </div>
-                            <select class="filter-select" id="orderStatusFilter">
-                                <option value="">All Statuses</option>
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
                         </div>
                     </div>
                     <div class="admin-table-wrap">
                         <table class="admin-table">
                             <thead>
                                 <tr>
-                                    <th>Order ID</th>
-                                    <th>Buyer ID</th>
-                                    <th>Product ID</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
+                                    <th>Subscriber</th>
+                                    <th>Product Listed</th>
+                                    <th>Fee Paid</th>
                                     <th>Date</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="ordersTableBody">
-                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>
+                            <tbody id="subscribersTableBody">
+                                <tr><td colspan="4" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>
                             </tbody>
                         </table>
                     </div>
