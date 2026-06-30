@@ -118,7 +118,7 @@
                 if (res.ok && data.success) {
                     sessionStorage.setItem('am_admin_auth', 'true');
                     sessionStorage.setItem('am_admin_user', data.displayName || data.username);
-                    window.location.href = 'admin-dashboard.html';
+                    window.location.href = 'index.html';
                 } else {
                     throw new Error(data.error || 'Invalid username or password.');
                 }
